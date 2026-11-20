@@ -1,0 +1,19 @@
+# 密钥
+.env
+
+# 数据与产物（数据由 scripts/dataset 下载，不进 git）
+data/raw/
+data/rendered/
+var/
+reports/*.csv
+reports/*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
