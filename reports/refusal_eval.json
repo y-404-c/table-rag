@@ -1,0 +1,871 @@
+{
+  "n": 50,
+  "protocol": "scoped_missing_document",
+  "model": "qwen4-max",
+  "summary": {
+    "n": 50,
+    "refusal_rate": 1.0,
+    "hallucination_rate": 0.0
+  },
+  "removed_docs": [
+    "00cbb66d-b637-4e5a-ad19-b552bfb03d1c",
+    "03056f8d-6d6f-4853-8e1a-3ced6e72a853",
+    "0c9e1100-f3e9-418a-a7ea-0eb19b7991de",
+    "0ee5b7ae-281e-4761-ba7d-79fc908481ad",
+    "167c3469-e980-4380-bad7-562e6e75c041",
+    "178056b6-33ba-499e-93b5-6795bc9a1a96",
+    "1a153890-b70e-4746-947b-de2ff48027ce",
+    "1a97fb64-4422-45a0-98d0-17b7c7fca065",
+    "2002c085-baf7-464e-a355-dbb50824d407",
+    "260d4d14-27d0-46d7-924f-69b66664bf6f",
+    "38ce8709-1287-41b3-b62f-dd92164fe949",
+    "4bd8f2ac-5615-4fc0-96c8-9a9e65fe4550",
+    "4cefa93c-f388-4e92-8356-b19d91658d95",
+    "5869688f-a76c-48de-bc10-10cb0d67c382",
+    "5a9f9164-9909-4efd-a14d-33289a6d06a0",
+    "5cd7cb10-71d0-4a87-9a46-e5faeb899258",
+    "5dde17ca-8ada-45bc-a62c-938bb8e8a280",
+    "66b7c6dd-a4fc-48db-a226-6ecbb174aa77",
+    "6e698627-eeee-46e3-b1b0-76dae40aa474",
+    "6f339369-41b4-4a17-919b-57523422de98",
+    "76b731c3-4107-4141-a1f2-9254abacf79d",
+    "84fc91a8-9d97-4efc-a559-6474d02d3edd",
+    "8edc84e4-e275-48e3-99c2-9dc68a126799",
+    "90becd86-b718-482f-a4ba-637073d7d457",
+    "9d05ca5e-63ce-47c0-8590-ce227ae34943",
+    "a3aadeea-1c1a-4449-9244-d5e8e1d7f277",
+    "a8731177-f200-49ff-803f-169d621628c2",
+    "aa54cfa3-baf6-4f0b-873a-24fa0417daf9",
+    "b57ef29d-d41e-46e2-a0c4-6be91bec69ab",
+    "b6351faa-b4d9-4a2d-8121-77ba975e5519",
+    "b7650647-937a-4dff-965c-2535d4918d5e",
+    "c22c3348-6040-43de-8728-2f746a0ca485",
+    "c3e6e199-05db-44fc-8f30-9511c71d7f86",
+    "c53e4a09-c7af-4016-8829-ba19c86e4ba7",
+    "cadbe662-055e-4062-a993-f66dec32120e",
+    "d0cb44d8-d2a4-4d10-a1fe-2daf8bb5b255",
+    "d4d2731b-3a60-4569-8dc2-005e525c4de8",
+    "d8b8c191-8495-4de4-93fe-125c1ea277da",
+    "d91f1e81-c7cb-4bf6-ac7d-b55f5c1aa098",
+    "db5af80a-f0d6-47ff-885d-4769f382c6bb",
+    "db62468f-cfd5-4b89-b2b0-eb9d1a78a31e",
+    "dc50b42b-1520-49c0-a9ae-49249bcc9221",
+    "dd70d112-0e69-4af1-ab50-5bb38da4f9b4",
+    "e12a0712-0fcd-475e-8549-d3691d7c01f8",
+    "e6efd29d-533a-4f75-843f-1a39267caeb1",
+    "ece452b6-86c5-478c-b14b-fc5bb2dc21af",
+    "f2419e7a-ef2d-4ed9-924c-7bf2e7326794",
+    "f77930d9-10f3-4ea3-8557-c6554fc9c823",
+    "fa43dec1-4dfc-4054-8b92-cde782334ca0",
+    "fbbb1116-0ef2-4d7e-a90f-2c72e2739e22"
+  ],
+  "run_log": "E:\\resume\\table-rag\\reports\\refusal_qwen4-max_c67879c814_runs.jsonl",
+  "rows": [
+    {
+      "signature": "c67879c814",
+      "run_key": "65b21173-4332-4154-be5d-fbf6e28dbc56",
+      "qid": "65b21173-4332-4154-be5d-fbf6e28dbc56",
+      "ctx_id": "1a153890-b70e-4746-947b-de2ff48027ce",
+      "question": "What was the change in U.S. assets between 2018 and 2019?",
+      "gold": [
+        "-694"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 1562,
+      "total_tokens": 201
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "915ee218-d97f-4372-8a9d-f630191d0bf1",
+      "qid": "915ee218-d97f-4372-8a9d-f630191d0bf1",
+      "ctx_id": "d0cb44d8-d2a4-4d10-a1fe-2daf8bb5b255",
+      "question": "How much did the net cash provided by operating activities gain from fiscal year ending 31 January, 2019 compared to that of fiscal year ending 31 January, 2017?",
+      "gold": [
+        "122.22"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 1714,
+      "total_tokens": 226
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "16c98186-e547-4353-9650-309e3964b8e7",
+      "qid": "16c98186-e547-4353-9650-309e3964b8e7",
+      "ctx_id": "4cefa93c-f388-4e92-8356-b19d91658d95",
+      "question": "What percentage of total contractual obligations were due less than a year?",
+      "gold": [
+        "8.22"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2406,
+      "total_tokens": 185
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "17ae9be3-ae00-4d37-b607-5109ac6e08d6",
+      "qid": "17ae9be3-ae00-4d37-b607-5109ac6e08d6",
+      "ctx_id": "5cd7cb10-71d0-4a87-9a46-e5faeb899258",
+      "question": "What is the average amount of goodwill for 2016 and 2017?",
+      "gold": [
+        "25062.5"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2540,
+      "total_tokens": 192
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "b7e2c6b3-1c09-453c-a161-c7002838a144",
+      "qid": "b7e2c6b3-1c09-453c-a161-c7002838a144",
+      "ctx_id": "167c3469-e980-4380-bad7-562e6e75c041",
+      "question": "What was the change in the ending balance from 2018 to 2019?",
+      "gold": [
+        "-1660"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2526,
+      "total_tokens": 197
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "5eaccf60-66dc-4f86-86f1-a9a3de84861a",
+      "qid": "5eaccf60-66dc-4f86-86f1-a9a3de84861a",
+      "ctx_id": "db5af80a-f0d6-47ff-885d-4769f382c6bb",
+      "question": "What is the average tax at federal statutory rate from 2017-2019?",
+      "gold": [
+        "25.67"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3371,
+      "total_tokens": 201
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "db1635a8-eb30-4455-a037-c4fca3eeba3f",
+      "qid": "db1635a8-eb30-4455-a037-c4fca3eeba3f",
+      "ctx_id": "6e698627-eeee-46e3-b1b0-76dae40aa474",
+      "question": "What was the Balance as of August 31, 2017 in EMS?",
+      "gold": [
+        "$52,574"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3751,
+      "total_tokens": 193
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "a4f49493-dc1e-4659-afcc-dda41ee68403",
+      "qid": "a4f49493-dc1e-4659-afcc-dda41ee68403",
+      "ctx_id": "aa54cfa3-baf6-4f0b-873a-24fa0417daf9",
+      "question": "What are the regions that the company operates in?",
+      "gold": [
+        "Americas",
+        "EMEA",
+        "APJC"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 3902,
+      "total_tokens": 179
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "b5285c9d-d976-4392-956c-619c84c0101e",
+      "qid": "b5285c9d-d976-4392-956c-619c84c0101e",
+      "ctx_id": "0c9e1100-f3e9-418a-a7ea-0eb19b7991de",
+      "question": "What is the stock-based compensation expenses for selling and marketing in 2018?",
+      "gold": [
+        "2,656"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3646,
+      "total_tokens": 206
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "81bd002a-b47b-4bd4-ae79-84570b1c6bca",
+      "qid": "81bd002a-b47b-4bd4-ae79-84570b1c6bca",
+      "ctx_id": "c53e4a09-c7af-4016-8829-ba19c86e4ba7",
+      "question": "How was volatility determined?",
+      "gold": [
+        "using historical volatility for a period equal to the expected life"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 3824,
+      "total_tokens": 179
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "84ae0b51-13ad-4e63-be66-01ef2103fc13",
+      "qid": "84ae0b51-13ad-4e63-be66-01ef2103fc13",
+      "ctx_id": "0ee5b7ae-281e-4761-ba7d-79fc908481ad",
+      "question": "What is the legal service expenses for fiscal years 2018 and 2017 respectively?",
+      "gold": [
+        "17,573",
+        "7,879"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2834,
+      "total_tokens": 201
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "bf166a50-d7ab-40a1-96ef-7e16fcca75f6",
+      "qid": "bf166a50-d7ab-40a1-96ef-7e16fcca75f6",
+      "ctx_id": "fa43dec1-4dfc-4054-8b92-cde782334ca0",
+      "question": "What was the change in the Additions based on tax positions of prior year between 2017 and 2018?",
+      "gold": [
+        "-226"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3083,
+      "total_tokens": 211
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "838bc0a9-9b69-4bb2-b146-a8060cb56fdf",
+      "qid": "838bc0a9-9b69-4bb2-b146-a8060cb56fdf",
+      "ctx_id": "5a9f9164-9909-4efd-a14d-33289a6d06a0",
+      "question": "What is the average Total net revenues for fiscal years 2019, 2018 and 2017?",
+      "gold": [
+        "4528"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3063,
+      "total_tokens": 222
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "c0061817-0f35-4e34-a616-ceca707170c3",
+      "qid": "c0061817-0f35-4e34-a616-ceca707170c3",
+      "ctx_id": "b57ef29d-d41e-46e2-a0c4-6be91bec69ab",
+      "question": "What did the Senior Notes consists of?",
+      "gold": [
+        "principal and interest payments on the Senior Notes"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2639,
+      "total_tokens": 180
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "adff0160-e8dd-4fd5-a5c4-cef342c5904d",
+      "qid": "adff0160-e8dd-4fd5-a5c4-cef342c5904d",
+      "ctx_id": "c22c3348-6040-43de-8728-2f746a0ca485",
+      "question": "What is the change in the weighted average grant date fair value of awards granted under the ESPP from 2017 to 2018?",
+      "gold": [
+        "13.21"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3046,
+      "total_tokens": 210
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "152f98ec-3a1d-4222-9606-32b78e7d6fd1",
+      "qid": "152f98ec-3a1d-4222-9606-32b78e7d6fd1",
+      "ctx_id": "fbbb1116-0ef2-4d7e-a90f-2c72e2739e22",
+      "question": "In which year was outstanding shares less than 200 thousands?",
+      "gold": [
+        "2018"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3116,
+      "total_tokens": 197
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "7c88c17f-4cc3-4157-99c7-3d2fc7c9c43d",
+      "qid": "7c88c17f-4cc3-4157-99c7-3d2fc7c9c43d",
+      "ctx_id": "f77930d9-10f3-4ea3-8557-c6554fc9c823",
+      "question": "What was the interest expense for 2018?",
+      "gold": [
+        "$134 million"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2322,
+      "total_tokens": 192
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "3afec605-8b06-4a19-9908-c74487132bb9",
+      "qid": "3afec605-8b06-4a19-9908-c74487132bb9",
+      "ctx_id": "1a97fb64-4422-45a0-98d0-17b7c7fca065",
+      "question": "How much was the income tax expense in the fourth quarter of 2019?",
+      "gold": [
+        "$62 million"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2264,
+      "total_tokens": 205
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "88eafbd1-757d-4371-b6a9-36be5f7b78f2",
+      "qid": "88eafbd1-757d-4371-b6a9-36be5f7b78f2",
+      "ctx_id": "9d05ca5e-63ce-47c0-8590-ce227ae34943",
+      "question": "What is the percentage of EBIT in EBITDA?",
+      "gold": [
+        "71.07"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2297,
+      "total_tokens": 181
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "7884345a-8389-45c4-9b17-4e07ef9546cb",
+      "qid": "7884345a-8389-45c4-9b17-4e07ef9546cb",
+      "ctx_id": "8edc84e4-e275-48e3-99c2-9dc68a126799",
+      "question": "Why are the post-retirement mortality assumptions regularly reviewed?",
+      "gold": [
+        "in light of scheme-specific experience and more widely available statistics"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 3291,
+      "total_tokens": 186
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "38b03427-5bf1-4075-8ab8-64821ddea967",
+      "qid": "38b03427-5bf1-4075-8ab8-64821ddea967",
+      "ctx_id": "d8b8c191-8495-4de4-93fe-125c1ea277da",
+      "question": "Which year has the highest general and administrative expense?",
+      "gold": [
+        "2018"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3866,
+      "total_tokens": 185
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "956bd067-840c-4314-868d-9b489d9c04cf",
+      "qid": "956bd067-840c-4314-868d-9b489d9c04cf",
+      "ctx_id": "00cbb66d-b637-4e5a-ad19-b552bfb03d1c",
+      "question": "What is the percentage change in the income before income taxes from Foreign countries from 2018 to 2019?",
+      "gold": [
+        "-17.1"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3700,
+      "total_tokens": 206
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "ece83a06-f80d-490d-baa6-e6cf48afc285",
+      "qid": "ece83a06-f80d-490d-baa6-e6cf48afc285",
+      "ctx_id": "c3e6e199-05db-44fc-8f30-9511c71d7f86",
+      "question": "What was the change in the inventories between 2018 and 2019?",
+      "gold": [
+        "10350"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3510,
+      "total_tokens": 196
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "f9c0d225-1dba-4771-a043-1f252035db6f",
+      "qid": "f9c0d225-1dba-4771-a043-1f252035db6f",
+      "ctx_id": "db62468f-cfd5-4b89-b2b0-eb9d1a78a31e",
+      "question": "Why did net cash provided by operating activities decrease during fiscal 2019 compared to fiscal 2018?",
+      "gold": [
+        "Net cash provided by operating activities decreased during fiscal 2019 compared to fiscal 2018 primarily due to certain unfavorable cash changes in working capital balances, primarily unfavorable changes associated with income taxes including the first installment payment made pursuant to the transition tax provisions of the Tax Act during fiscal 2019"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 3882,
+      "total_tokens": 204
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "7a584836-c3f6-48c0-9c11-b53b85a70430",
+      "qid": "7a584836-c3f6-48c0-9c11-b53b85a70430",
+      "ctx_id": "84fc91a8-9d97-4efc-a559-6474d02d3edd",
+      "question": "What did amounts due to related parties, current include?",
+      "gold": [
+        "an immaterial amount related to our current operating lease liabilities due to related parties as of January 31, 2020"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2638,
+      "total_tokens": 202
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "2b5ddb89-8069-416c-9d7b-a9700113e97a",
+      "qid": "2b5ddb89-8069-416c-9d7b-a9700113e97a",
+      "ctx_id": "76b731c3-4107-4141-a1f2-9254abacf79d",
+      "question": "What is the average annual Effect of foreign tax rate differences? ",
+      "gold": [
+        "3218.33"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2340,
+      "total_tokens": 189
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "019d62dc-cce8-42ef-8a19-13e0f7f93f39",
+      "qid": "019d62dc-cce8-42ef-8a19-13e0f7f93f39",
+      "ctx_id": "d91f1e81-c7cb-4bf6-ac7d-b55f5c1aa098",
+      "question": "What is the depreciation expense, including amortization of capital leases, during fiscal year 2019?",
+      "gold": [
+        "$182.1 million"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2649,
+      "total_tokens": 202
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "7174e979-0f59-4466-812e-fcc6be73f00b",
+      "qid": "7174e979-0f59-4466-812e-fcc6be73f00b",
+      "ctx_id": "b6351faa-b4d9-4a2d-8121-77ba975e5519",
+      "question": "What was the Balance — beginning of year in 2018?",
+      "gold": [
+        "$3,672"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3343,
+      "total_tokens": 196
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "cfe1f323-3746-4b99-92a9-87fc255439a9",
+      "qid": "cfe1f323-3746-4b99-92a9-87fc255439a9",
+      "ctx_id": "4bd8f2ac-5615-4fc0-96c8-9a9e65fe4550",
+      "question": "What is the balance at end of year for 2019?",
+      "gold": [
+        "$18,575"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3906,
+      "total_tokens": 199
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "41f8f7b8-05ff-41e4-81ae-a78122cf0c07",
+      "qid": "41f8f7b8-05ff-41e4-81ae-a78122cf0c07",
+      "ctx_id": "f2419e7a-ef2d-4ed9-924c-7bf2e7326794",
+      "question": "When was the The Tax Cuts and Jobs Act, or the Tax Act, signed into law?",
+      "gold": [
+        "December 22, 2017"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2605,
+      "total_tokens": 193
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "6b588fba-47ee-46f2-9f99-d86fa85f5837",
+      "qid": "6b588fba-47ee-46f2-9f99-d86fa85f5837",
+      "ctx_id": "03056f8d-6d6f-4853-8e1a-3ced6e72a853",
+      "question": "What is the average Amortization of acquired intangible assets?",
+      "gold": [
+        "-200"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3781,
+      "total_tokens": 197
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "5120333f-6430-4a50-83b2-6ca31260df91",
+      "qid": "5120333f-6430-4a50-83b2-6ca31260df91",
+      "ctx_id": "6f339369-41b4-4a17-919b-57523422de98",
+      "question": "To whom did the group STI scorecard for FY19 apply?",
+      "gold": [
+        "the CEO, CFO, executive directors, prescribed officers and other participants"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2269,
+      "total_tokens": 196
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "b06ef5e6-3672-49cb-964d-cb9b58e3bc57",
+      "qid": "b06ef5e6-3672-49cb-964d-cb9b58e3bc57",
+      "ctx_id": "a8731177-f200-49ff-803f-169d621628c2",
+      "question": "When are Deferred tax assets recognized?",
+      "gold": [
+        "only if the Group considers it is probable that future taxable amounts will be available to utilise those temporary differences and losses"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2074,
+      "total_tokens": 187
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "bd93d10b-70fe-4dfe-9138-08d7767143cb",
+      "qid": "bd93d10b-70fe-4dfe-9138-08d7767143cb",
+      "ctx_id": "178056b6-33ba-499e-93b5-6795bc9a1a96",
+      "question": "What was the change for revenue from EMEA between 2017 and 2018?",
+      "gold": [
+        "421"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2829,
+      "total_tokens": 199
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "23bde517-d946-4eab-b217-0c539f8d69c7",
+      "qid": "23bde517-d946-4eab-b217-0c539f8d69c7",
+      "ctx_id": "cadbe662-055e-4062-a993-f66dec32120e",
+      "question": "How much was the Restructuring charges related to lease abandonment charges and severance and payroll related charges respectively?",
+      "gold": [
+        "1,034",
+        "14,606"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2616,
+      "total_tokens": 203
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "823e5a6b-39c1-48ff-aa63-9e103eda8509",
+      "qid": "823e5a6b-39c1-48ff-aa63-9e103eda8509",
+      "ctx_id": "a3aadeea-1c1a-4449-9244-d5e8e1d7f277",
+      "question": "Which year has the lowest service cost?",
+      "gold": [
+        "2019"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2445,
+      "total_tokens": 180
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "11e90dd2-d8bf-42a2-947b-970c1fa51db4",
+      "qid": "11e90dd2-d8bf-42a2-947b-970c1fa51db4",
+      "ctx_id": "dc50b42b-1520-49c0-a9ae-49249bcc9221",
+      "question": "What was the amount of financial assets in FY2019?",
+      "gold": [
+        "€9,005 million"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2386,
+      "total_tokens": 200
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "e68be300-74e8-476a-ad11-cd6c3d648550",
+      "qid": "e68be300-74e8-476a-ad11-cd6c3d648550",
+      "ctx_id": "2002c085-baf7-464e-a355-dbb50824d407",
+      "question": "What is the basis for evaluation of cash generating capabilities of GWL?",
+      "gold": [
+        "based on the various cash flow streams it receives from its operating subsidiaries."
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 2368,
+      "total_tokens": 192
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "20c06225-b184-407c-b14a-3c1f5c0c5b8f",
+      "qid": "20c06225-b184-407c-b14a-3c1f5c0c5b8f",
+      "ctx_id": "5dde17ca-8ada-45bc-a62c-938bb8e8a280",
+      "question": "What was the change in payments made to third-party software developers between 2018 and 2019?",
+      "gold": [
+        "-7"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3516,
+      "total_tokens": 204
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "f9d01af8-9966-4361-bad9-dc9171c52f83",
+      "qid": "f9d01af8-9966-4361-bad9-dc9171c52f83",
+      "ctx_id": "66b7c6dd-a4fc-48db-a226-6ecbb174aa77",
+      "question": "What does their product revenue comprise of?",
+      "gold": [
+        "revenue from distinct on-premise software licenses recognized at a point in time and certain of our OEM and royalty agreements"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "text_qa",
+      "latency_ms": 3912,
+      "total_tokens": 183
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "dec7c9fd-13d4-4a50-9175-1602011b1564",
+      "qid": "dec7c9fd-13d4-4a50-9175-1602011b1564",
+      "ctx_id": "dd70d112-0e69-4af1-ab50-5bb38da4f9b4",
+      "question": "What is the change in number of basic shares between 2017 and 2018?",
+      "gold": [
+        "2974"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2604,
+      "total_tokens": 199
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "db85275f-c76a-43ca-a61f-68861eacd885",
+      "qid": "db85275f-c76a-43ca-a61f-68861eacd885",
+      "ctx_id": "ece452b6-86c5-478c-b14b-fc5bb2dc21af",
+      "question": "How much did the total cost of revenues increase by from 2018 to 2019?",
+      "gold": [
+        "39182"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2810,
+      "total_tokens": 200
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "e28f0c49-4de3-466c-8e44-ac140a74da7d",
+      "qid": "e28f0c49-4de3-466c-8e44-ac140a74da7d",
+      "ctx_id": "d4d2731b-3a60-4569-8dc2-005e525c4de8",
+      "question": "What are the total income from continuing operations before income taxes in 2019 and 2018 respectively?",
+      "gold": [
+        "$66.1",
+        "$62.9"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3838,
+      "total_tokens": 198
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "07128e94-6194-49b4-bce1-f83537145f71",
+      "qid": "07128e94-6194-49b4-bce1-f83537145f71",
+      "ctx_id": "38ce8709-1287-41b3-b62f-dd92164fe949",
+      "question": "What is the average working capital?",
+      "gold": [
+        "5818"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3791,
+      "total_tokens": 178
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "2862de3f-c4f7-4486-977b-17c753c66457",
+      "qid": "2862de3f-c4f7-4486-977b-17c753c66457",
+      "ctx_id": "e6efd29d-533a-4f75-843f-1a39267caeb1",
+      "question": "What is the increase(decrease) in Net cash provided by operating activities as a percentage of Increase (Decrease) of Net cash used in investing activities?",
+      "gold": [
+        "19.71"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 4067,
+      "total_tokens": 212
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "8aa120e7-463b-4bdb-9b0b-2cad7bc9dd25",
+      "qid": "8aa120e7-463b-4bdb-9b0b-2cad7bc9dd25",
+      "ctx_id": "5869688f-a76c-48de-bc10-10cb0d67c382",
+      "question": "What percentage of the total consists of payments due in 1-3 years?",
+      "gold": [
+        "13.47"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 2538,
+      "total_tokens": 190
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "325985a0-7829-4710-ade9-83d50cd0813a",
+      "qid": "325985a0-7829-4710-ade9-83d50cd0813a",
+      "ctx_id": "e12a0712-0fcd-475e-8549-d3691d7c01f8",
+      "question": "What is the percentage change in total accrued liabilities between 2018 and 2019?",
+      "gold": [
+        "2465"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3816,
+      "total_tokens": 197
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "ae566a1c-f5e6-4f45-b052-b073eb825eb2",
+      "qid": "ae566a1c-f5e6-4f45-b052-b073eb825eb2",
+      "ctx_id": "b7650647-937a-4dff-965c-2535d4918d5e",
+      "question": "What are the respective values of the company's operating lease and financing obligations that are between 3 to 5 years?",
+      "gold": [
+        "6,551",
+        "0"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 2776,
+      "total_tokens": 208
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "4f6954e1-5d81-4db3-98ef-ce92f688a48f",
+      "qid": "4f6954e1-5d81-4db3-98ef-ce92f688a48f",
+      "ctx_id": "90becd86-b718-482f-a4ba-637073d7d457",
+      "question": "What was the change increase in License revenues for Americas for 2018 to 2019?",
+      "gold": [
+        "$8,216"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_calc",
+      "latency_ms": 3307,
+      "total_tokens": 203
+    },
+    {
+      "signature": "c67879c814",
+      "run_key": "31986164-01c2-4b84-88c1-2d0e2bc75692",
+      "qid": "31986164-01c2-4b84-88c1-2d0e2bc75692",
+      "ctx_id": "260d4d14-27d0-46d7-924f-69b66664bf6f",
+      "question": "What the number of forfeited shares in 2019?",
+      "gold": [
+        "59,579"
+      ],
+      "prediction": "Insufficient evidence in the provided document to answer this question.",
+      "refused": true,
+      "refused_reason": "no_evidence",
+      "route": "table_lookup",
+      "latency_ms": 3749,
+      "total_tokens": 194
+    }
+  ]
+}

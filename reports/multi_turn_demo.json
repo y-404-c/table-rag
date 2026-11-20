@@ -1,0 +1,249 @@
+{
+  "n": 3,
+  "model": "qwen4-max",
+  "demos": [
+    {
+      "ctx_id": "0633bda8-10dd-4f06-b486-de35b19e672b",
+      "doc_id": "tatqa:0633bda8-10dd-4f06-b486-de35b19e672b",
+      "thread_id": "demo-0633bda8-10dd-4f06-b486-de35b19e672b-20261120233127",
+      "title": "what is the total compensation expense recorded by the company for the year ende（2018 vs 2019）",
+      "turns": [
+        {
+          "turn": 1,
+          "question": "What is the total compensation expense recorded by the Company for the year ended December 31, 2019?",
+          "answer": "$392",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:0633bda8-10dd-4f06-b486-de35b19e672b",
+              "table_id": null,
+              "page": 1,
+              "row": null,
+              "col": null,
+              "text": "The total compensation expense recorded by the Company in respect of its stock and restricted stock awards to certain employees, officers, directors, and service providers for the year ended December "
+            }
+          ],
+          "latency_ms": 12404,
+          "tokens": 4601,
+          "gold": [
+            "$392"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "And what about 2018?",
+          "answer": "$506",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:0633bda8-10dd-4f06-b486-de35b19e672b",
+              "table_id": null,
+              "page": 1,
+              "row": null,
+              "col": null,
+              "text": "The total compensation expense recorded by the Company in respect of its stock and restricted stock awards to certain employees, officers, directors, and service providers for the year ended December "
+            }
+          ],
+          "latency_ms": 10539,
+          "tokens": 4268,
+          "gold": [
+            "$506"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "What is the difference between the 2019 value and the 2018 value?",
+          "answer": "Cannot produce a reliable numeric answer: the calculation tool could not locate the required cells.",
+          "route": "table_calc",
+          "refused": true,
+          "citations": [],
+          "latency_ms": 7324,
+          "tokens": 3122
+        }
+      ]
+    },
+    {
+      "ctx_id": "08011b49-022e-4e03-afa4-e897ca34e855",
+      "doc_id": "tatqa:08011b49-022e-4e03-afa4-e897ca34e855",
+      "thread_id": "demo-08011b49-022e-4e03-afa4-e897ca34e855-20261120233127",
+      "title": "how much was the foreign credit carryforwards before consideration of valuation （2018 vs 2019）",
+      "turns": [
+        {
+          "turn": 1,
+          "question": "How much was the foreign credit carryforwards before consideration of valuation allowance as of December 31, 2019?",
+          "answer": "$76.8 million",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:08011b49-022e-4e03-afa4-e897ca34e855",
+              "table_id": null,
+              "page": 1,
+              "row": null,
+              "col": null,
+              "text": "As of December 31, 2019 and 2018, the Company had $76.8 million and $68.8 million, respectively, of foreign credit carryforwards before consideration of valuation allowance. If not utilized, the major"
+            }
+          ],
+          "latency_ms": 12493,
+          "tokens": 5311,
+          "gold": [
+            "$76.8 million"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "And what about 2018?",
+          "answer": "$68.8 million",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:08011b49-022e-4e03-afa4-e897ca34e855",
+              "table_id": null,
+              "page": 1,
+              "row": null,
+              "col": null,
+              "text": "As of December 31, 2019 and 2018, the Company had $76.8 million and $68.8 million, respectively, of foreign credit carryforwards before consideration of valuation allowance. If not utilized, the major"
+            }
+          ],
+          "latency_ms": 10524,
+          "tokens": 5403,
+          "gold": [
+            "$68.8 million"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "What is the difference between the 2019 value and the 2018 value?",
+          "answer": "Insufficient evidence in the provided document to answer this question.",
+          "route": "table_calc",
+          "refused": true,
+          "citations": [],
+          "latency_ms": 6805,
+          "tokens": 1825
+        }
+      ]
+    },
+    {
+      "ctx_id": "0ff0244d-7a27-4650-94ab-9cd26268e656",
+      "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+      "thread_id": "demo-0ff0244d-7a27-4650-94ab-9cd26268e656-20261120233127",
+      "title": "how much is the research and development expenses for the year ended {y}?（2017 vs 2019）",
+      "turns": [
+        {
+          "turn": 1,
+          "question": "How much is the research and development expenses for the year ended 2019?",
+          "answer": "$355,015 thousand",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": 1,
+              "text": "$ 355,015"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": null,
+              "text": "row3 | col0: Research and development | Years ended December 31, / 2019: $ 355,015 | 2018: $ 230,674 | 2017: $ 135,997 | 2019 vs 2018 / % Change: 53.9 % | 2018 vs 2017 / % Change: 69.6 %"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 2,
+              "col": null,
+              "text": "row2 | Years ended December 31, / 2019: (in thousands, except percentages)"
+            }
+          ],
+          "latency_ms": 11867,
+          "tokens": 4909,
+          "gold": [
+            "$ 355,015"
+          ]
+        },
+        {
+          "turn": 2,
+          "question": "And what about 2017?",
+          "answer": "$135,997 thousand",
+          "route": "table_lookup",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": 3,
+              "text": "$ 135,997"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": null,
+              "text": "row3 | col0: Research and development | Years ended December 31, / 2019: $ 355,015 | 2018: $ 230,674 | 2017: $ 135,997 | 2019 vs 2018 / % Change: 53.9 % | 2018 vs 2017 / % Change: 69.6 %"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 2,
+              "col": null,
+              "text": "row2 | Years ended December 31, / 2019: (in thousands, except percentages)"
+            }
+          ],
+          "latency_ms": 12408,
+          "tokens": 5001,
+          "gold": [
+            "$ 135,997"
+          ]
+        },
+        {
+          "turn": 3,
+          "question": "What is the difference between the 2019 value and the 2017 value?",
+          "answer": "$219,018 thousand (2017 - Years ended December 31, / 2019 = -219,018)",
+          "route": "table_calc",
+          "refused": false,
+          "citations": [
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": 1,
+              "text": "$ 355,015"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": 3,
+              "text": "$ 135,997"
+            },
+            {
+              "doc_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656",
+              "table_id": "tatqa:0ff0244d-7a27-4650-94ab-9cd26268e656:t0",
+              "page": 1,
+              "row": 3,
+              "col": null,
+              "text": "row3 | col0: Research and development | Years ended December 31, / 2019: $ 355,015 | 2018: $ 230,674 | 2017: $ 135,997 | 2019 vs 2018 / % Change: 53.9 % | 2018 vs 2017 / % Change: 69.6 %"
+            }
+          ],
+          "latency_ms": 9470,
+          "tokens": 5101
+        }
+      ]
+    }
+  ]
+}
