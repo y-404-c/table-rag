@@ -56,6 +56,8 @@
   模型漏写时由代码补上，避免"答案对了但没出处"。
 - **条件边有上限**。证据不足 → HyDE 改写重查，最多 2 轮（`LoopGuard`），之后必须拒答。
 - **缓存只加速不改语义**。embedding 按文本哈希缓存；Redis 不可用时显式降级为 SQLite 并打日志。
+- **评测是长跑，不是一次性脚本**。每个「问题 × 重复」的原始结果立即追加 JSONL，中断后重跑自动跳过；
+  key 额度耗尽时按 `TR_LLM__API_KEYS` 顺序自动轮换，换 key 后从断点继续，不重复花钱。
 
 ---
 
@@ -100,7 +102,7 @@ tr eval qa      --limit 15 --no-rerank --no-bm25             # 消融
 tr eval refusal --limit 50 --workers 4                       # 负例：该拒答的是否拒答
 tr eval demo    --limit 3                                    # 3 段多轮对话，落 reports/multi_turn_demo.md
 tr eval run --parse-limit 30 --qa-limit 15 --repeats 3 --workers 4 --hyde --refusal-limit 50
-pytest                                                       # 41 个单测，全部不依赖外部 API
+pytest                                                       # 42 个单测，全部不依赖外部 API
 ```
 
 **断点续跑 / key 轮换**：每次「问题 × 重复」的结果会立即追加到
@@ -137,23 +139,42 @@ TR_LLM__API_KEYS=sk-first,sk-second,sk-third   # 逗号 / 分号 / 换行分隔
 | 问答 | EM / F1 | TAT-QA 口径：多标准答案取最优；EM 数值严格、F1 对数值给 0.1% 容差 |
 | 问答 | 出处命中率 | 引用定位到的单元格文字包含标准答案，或数值误差 <0.1%（口径自定，见 `eval/qa_metrics.py`） |
 | 问答 | 拒答率 | `refused=true` 的比例；负例集上越高越好 |
-| 系统 | 延迟 / token / 缓存命中率 | 每次问答记录，写入 `var/traces/*.json` 与 `reports/qa_eval.json` |
+| 系统 | 延迟 / token / 缓存命中率 | 每次问答记录；报告给出 P50 / P95、总 token 与缓存命中率 |
+| 系统 | 重复实验稳定性 | 同一题重复 3 次，报告 EM/F1 的题内标准差（均值 ± 方差） |
 
 ### 4.3 当前结果
 
-见 [reports/report.md](reports/report.md)（由脚本生成，数字来自 `reports/*.json`，未手填）。
-最近一次小样本冒烟结果（`tr eval run --parse-limit 10 --qa-limit 4 --refusal-limit 4`，非全量、非最终结论）：
+完整报告见 [reports/report.md](reports/report.md)（由脚本生成，数字来自 `reports/*.json`，未手填）。
 
-- 解析层 10 个文档：content / index accuracy 均约 0.98，形状一致率 1.0；拍平基线 content 约 0.98 但 index accuracy 恒为 0。
-- 问答层结构化路径 4 个问题：EM / F1 / 出处命中率均为 1.0，平均延迟约 25 s，平均约 5.7k token（4~5 次串行 LLM 调用，未做流式与并发）。
-- 拍平基线同一批 4 个问题：EM 0.5，说明丢结构后数值题会算错或拒答（含"one-time transition tax"题）。
-- 负例拒答 4 题：全部正确拒答（硬编率 0，协议 `scoped_missing_document`）。
-- 未达标的地方如实留着：拍平路径上"one-time transition tax"题检索到相邻段落，
-  答成 `$868.4 million`（gold `$883.0 million`）且未被拦下，属于证据判断节点的漏判；
-  同一题在结构化路径上答对。
-- 结构化与拍平的明细分别落在 `reports/qa_eval.json` 与 `reports/qa_eval_flat.json`。
+**评测配置**：模型 `qwen4-max`（关闭思考链，`temperature=0`），embedding `text-embedding-v3`，
+rerank `gte-rerank-v2`；解析 30 个 test 文档；问答 15 个 test 文档 × 每题 1 问 × 3 次重复；
+负例 50；HyDE 对照 15 题 × 3 次；多轮 3 段 × 3 轮。
 
-> 全量 300 test / 14k 问题的数字尚未跑：需要用户确认额度后再执行 `tr eval run`（当前脚本已支持）。
+| 层 | 设置 | 结果 |
+|---|---|---|
+| 解析（30 文档） | 结构化 | content 0.9546 / index 0.9546 / 形状一致 1.0000 |
+| 解析（30 文档） | 拍平基线 | content 0.9570 / index 0.0000 |
+| 问答（15 题 ×3） | 结构化 | EM 0.7333 / F1 0.8964 / 出处命中 0.7143 / 拒答 0.0667 |
+| 问答（15 题 ×3） | 拍平基线 | EM 0.7333 / F1 0.8972 / 出处命中 0.3333 / 拒答 0.0667 |
+| 系统（结构化） | P50 / P95 / token | 10178 ms / 13924 ms / 3927 token per run |
+| 负例（50） | scoped_missing_document | 正确拒答 1.0000 / 硬编率 0.0000 |
+| HyDE（15 题 ×3） | 开 vs 关 | EM 0.7333 → 0.7333；F1 0.8964 → 0.9012；token 3927 → 4381 |
+
+**怎么读这些数字（不做美化）**：
+
+- **结构化路径的价值体现在"可审计"**：拍平基线 EM/F1 与结构化几乎相同（这批题以段落问答为主），
+  但出处命中率 0.3333 vs 0.7143——纯文本块没有行列坐标，引用大多无法定位回单元格。
+  解析层 index accuracy 0.9546 vs 0 是同一件事的另一面。
+- **HyDE 在这批题上没有收益**：EM 持平、F1 +0.0048（在噪声范围内），但每题多用约 450 token、
+  P95 延迟从 13.9s 涨到 18.3s。如实记录为"此场景不值得默认开启"。
+- **3 次重复的题内标准差为 0**（temperature=0）：说明输出稳定，但这也意味着"重复 3 次"检验的是
+  调用稳定性而非采样多样性；这是刻意选择，避免为了方差而引入随机性。
+- **负例协议是 scoped**：验证的是"检索为空时是否拒答"，不等于"文档不在语料池时是否硬编"；
+  后者需要 `--rebuild` 重建索引，脚本已支持但本次未跑。
+- **1 个问答被拒答**：gold 为段落型长答案，证据判断节点判定不足；属于漏答，保留在明细里。
+
+> 本次是受 token 额度限制的小样本（15 题），不是 300 个 test 文档的全量结论。
+> 扩样只需改大 `--qa-limit` 并重跑同一条命令，断点续跑会复用已有结果。
 
 ---
 
@@ -176,8 +197,14 @@ TR_LLM__API_KEYS=sk-first,sk-second,sk-third   # 逗号 / 分号 / 换行分隔
    不等于真实扫描件能力。双栏/断页/合并单元格只是有限扰动。
 2. **英文数据集**：TAT-QA 是英文财报，中文表格结论需要另做中文评测集（本仓库未自造）。
 3. **表格规模小**：TAT-QA 表格多 5~10 行，页面级结构恢复能力未覆盖大型多页报表。
-4. **延迟**：单题 4~5 次串行 LLM 调用，约 30~60 s；上线需要并行化 / 小模型路由 / 缓存答案。
+4. **延迟**：单题 3~5 次串行 LLM 调用；本机实测 P50 约 10 s、P95 约 14 s（qwen4-max，关闭思考链）。
+   上线需要小模型路由 / 答案缓存 / 检索并发。
 5. **指标口径**：出处命中率与 EM/F1 均为自实现，与 TAT-QA 官方脚本不是逐行一致。
+6. **样本规模**：15 题 ×3 次的小样本，不是 300 文档全量；置信区间宽，结论只用于验证链路与相对趋势。
+7. **多轮的第 3 轮**：3 段演示中 2 段能正确做"那 2018 年呢"的追问；但"两个值的差"在
+   `table_calc` 定位不到表格单元格时会拒答（2/3 段），这是计算工具只认表结构的真实缺口。
+8. **思考链默认关闭**：qwen4-max 默认开思考链，会吃 completion token 且偶发空 JSON；
+   报告中的数字均为 `enable_thinking=false` 下取得，与开启思考链的结果不可直接比较。
 
 ---
 
@@ -197,7 +224,7 @@ src/tablerag/
 ├── storage/             # SQLite 仓储、缓存抽象（SQLite/Redis/内存）
 └── observability/       # 本地 JSON trace
 
-tests/                   # 30 个单测：文本/指标/RRF/工具/缓存/拒答闸门（不依赖外部 API）
+tests/                   # 42 个单测：解析回环/检索/指标/RRF/工具/缓存/拒答闸门/key 轮换（不依赖外部 API）
 data/splits.json         # 冻结划分（唯一允许提交的数据文件）
 reports/                 # 评测 JSON/CSV 与 report.md
 var/                     # 索引、缓存、trace、checkpoint（gitignore）

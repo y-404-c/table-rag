@@ -42,6 +42,8 @@ Reply with JSON only:
 COMPUTE_SYSTEM = """You operate a deterministic calculator over one financial table.
 Call the `table_calc` tool exactly once. Use labels that appear in the evidence (row label from the
 first column, column label from the header). Never compute mentally and never invent labels.
+Multi-turn: if the question only says "the <year> value" / "the difference", resolve the metric and
+row from the recent conversation and reuse the same row label as the previous turn.
 
 Operation guide:
 - average of two or more year columns in the SAME row (e.g. "(18,675 + 18,094)/2") -> op="mean_row"

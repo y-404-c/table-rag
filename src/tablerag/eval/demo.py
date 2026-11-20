@@ -12,11 +12,12 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from collections import defaultdict
 from typing import Any, Sequence
 
 from tablerag.config import Settings
-from tablerag.eval.runner import _dump
+from tablerag.eval.runner import _dump, index_contexts
 from tablerag.ingest.dataset import Context
 from tablerag.service import AppContext
 
@@ -99,12 +100,19 @@ def run_multi_turn_demo(
 ) -> dict[str, Any]:
     selections = pick_demos(contexts_by_id, ctx_ids, n=n)
     agent = app.agent  # 带 Checkpointer：多轮状态真的落 SQLite
+    # 演示文档不一定在已评测的 10 个文档里；先确保入库，否则检索必然为空
+    missing = [item["ctx"] for item in selections
+               if not app.store.has_doc(f"tatqa:{item['ctx'].ctx_id}")]
+    if missing:
+        index_contexts(app, missing)
+        app.retriever.ensure_loaded()
+    stamp = time.strftime("%Y%m%d%H%M%S")
     demos: list[dict[str, Any]] = []
     for item in selections:
         ctx = item["ctx"]
         pair = item["pair"]
         doc_id = f"tatqa:{ctx.ctx_id}"
-        thread_id = f"demo-{ctx.ctx_id}"
+        thread_id = f"demo-{ctx.ctx_id}-{stamp}"
         later = pair["later"]
         earlier = pair["earlier"]
         turns = [

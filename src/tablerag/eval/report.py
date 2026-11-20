@@ -18,7 +18,9 @@ HONESTY_NOTES = """
    刻意使用不同工具，并随机化空白/合并单元格/跨页/双栏，但**无法消除循环论证**。
 3. **代表性**：TAT-QA 表格规模偏小（多为 5~10 行），结论不外推到大型多页财报表。
 4. **出处命中口径自定**：见 eval/qa_metrics.py 的 `citation_hit`，与官方指标不是同一口径。
-5. **本文件中的每一个数字都来自 `tr eval ...` 的输出**；未运行的项显示为"未运行"。
+5. **样本规模**：受模型 token 额度限制，本次为 test 集前 N 个文档/问题的小样本（N 见每节标题下），
+   不是 300 个 test 文档的全量结论；同一条命令可扩样重跑，断点续跑不会重复花钱。
+6. **本文件中的每一个数字都来自 `tr eval ...` 的输出**；未运行的项显示为"未运行"。
 """
 
 
@@ -47,7 +49,7 @@ def render_parse_section(payload: dict[str, Any]) -> str:
         f"差值：content {_fmt(delta.get('content_accuracy'))} / index {_fmt(delta.get('index_accuracy'))}。",
         "",
     ]
-    rows = payload.get("rows", [])[:5]
+    rows = [row for row in payload.get("rows", []) if row.get("content_accuracy", 1.0) < 0.999][:5]
     if rows:
         lines += ["失败样例（前 5 个，按输入 order 而非挑最差）：", ""]
         for row in rows:
@@ -82,7 +84,10 @@ def render_qa_section(payload: dict[str, Any], title: str) -> str:
         "",
     ]
     if payload.get("resumed_skipped"):
-        lines.append(f"本次断点续跑跳过：{payload['resumed_skipped']} 次运行（结果复用）。")
+        lines.append(
+            f"本批结果包含 {payload['resumed_skipped']} 次断点续跑复用的运行"
+            f"（同一签名、同一命令；新跑 {payload.get('n', 0) * repeats - payload['resumed_skipped']} 次）。"
+        )
     keypool = payload.get("keypool") or {}
     if keypool.get("rotations"):
         lines.append(f"评测期间 key 轮换：{keypool['rotations']} 次（{keypool.get('dead', 0)} 个 key 额度耗尽）。")
