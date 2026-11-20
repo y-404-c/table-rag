@@ -315,11 +315,14 @@ class RAGAgent:
         except LLMError as exc:
             logger.warning("生成失败，降级为证据摘录：%s", exc)
             fallback = compute.display if compute else (evidence[0]["text"][:300] if evidence else "")
+            base_cites = [self._citation(evidence[0])] if evidence else []
+            enriched = (self._enrich_cell_citations(base_cites, evidence, fallback)
+                        if fallback else base_cites)
             return {
                 "answer": fallback,
                 "refused": False,
                 "refused_reason": "",
-                "citations": [self._citation(evidence[0]).model_dump()] if evidence else [],
+                "citations": [c.model_dump() for c in enriched],
                 "history": self._append_history(state, fallback),
                 "steps": self._step(state, "generate", degraded=str(exc)),
             }
@@ -328,7 +331,11 @@ class RAGAgent:
         refused = bool(result.get("refused", False))
         if refused:
             answer_text = answer_text or REFUSAL_TEMPLATE
-        citations = self._validate_citations(result.get("citations", []), evidence, compute)
+        # 拒答时不给答案，避免拿拒答模板去误匹配单元格
+        citations = self._validate_citations(
+            result.get("citations", []), evidence, compute,
+            answer_text="" if refused else answer_text,
+        )
         if compute is not None and not refused:
             answer_text = self._ensure_computed_value(answer_text, compute)
         return {
@@ -419,7 +426,8 @@ class RAGAgent:
         }
 
     def _validate_citations(
-        self, raw: Any, evidence: list[dict[str, Any]], compute: ComputeResult | None
+        self, raw: Any, evidence: list[dict[str, Any]], compute: ComputeResult | None,
+        answer_text: str = "",
     ) -> list[Citation]:
         allowed = {item["unit_id"]: item for item in evidence}
         citations: list[Citation] = []
@@ -451,6 +459,65 @@ class RAGAgent:
                 continue
             seen_cells.add(key)
             citations.append(citation)
+
+        # 非计算路径（table_lookup 直答 / text_qa / 多轮指代）LLM 只返回 unit_id，
+        # 映射出来是行级出处（col=None）。这里确定性地在「检索到的证据行」里扫描
+        # 与答案数值/文字匹配的单元格，补全 row+col，让数值答案能溯源到具体单元格。
+        if answer_text:
+            citations = self._enrich_cell_citations(citations, evidence, answer_text)
+        return citations
+
+    def _enrich_cell_citations(
+        self, citations: list[Citation], evidence: list[dict[str, Any]], answer_text: str
+    ) -> list[Citation]:
+        from tablerag.domain.text import normalize_cell, numbers_match, parse_number
+
+        tokens = re.findall(r"[-+]?\(?\$?\d[\d,]*(?:\.\d+)?\)?%?", answer_text)
+        answer_numbers = [n for n in (parse_number(t) for t in tokens) if n is not None]
+        answer_norm = normalize_cell(answer_text).lower()
+        if not answer_numbers and not answer_norm:
+            return citations
+
+        seen: set[tuple] = {(c.table_id, c.row, c.col) for c in citations}
+        for item in evidence:
+            table_id = item.get("table_id")
+            row = item.get("row")
+            if not table_id or row is None:
+                continue
+            table = self.store.get_table(table_id)
+            if table is None:
+                continue
+            for col in range(table.n_cols):
+                key = (table_id, row, col)
+                if key in seen:
+                    continue
+                cell_text = table.cell(row, col)
+                if not cell_text.strip():
+                    continue
+                hit = False
+                cell_number = parse_number(cell_text)
+                if cell_number is not None:
+                    for an in answer_numbers:
+                        if numbers_match(cell_number, an):
+                            hit = True
+                            break
+                if not hit:
+                    ncell = normalize_cell(cell_text).lower()
+                    # 文字命中要求单元格内容非平凡且是答案子串，避免短标签误命中
+                    if len(ncell) >= 2 and ncell in answer_norm:
+                        hit = True
+                if hit:
+                    seen.add(key)
+                    citations.append(
+                        Citation(
+                            doc_id=item.get("doc_id", ""),
+                            table_id=table_id,
+                            page=table.page,
+                            row=row,
+                            col=col,
+                            text=cell_text[:200],
+                        )
+                    )
         return citations
 
     @staticmethod

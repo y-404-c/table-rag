@@ -71,16 +71,20 @@ def render_qa_section(payload: dict[str, Any], title: str) -> str:
         f"## {title}",
         "",
         f"样本数：{n} 个问题 × {repeats} 次重复 = {n * repeats} 次运行；"
-        f"并发 {workers}；模型 `{payload.get('model', 'n/a')}`。",
+        f"并发 {workers}；模型 `{payload.get('model', 'n/a')}`；代码版本 `{payload.get('code_version', 'n/a')}`。",
         "",
-        "| EM | EM 题内标准差 | F1 | F1 题内标准差 | 出处命中率 | 拒答率 | P50(ms) | P95(ms) | 平均 token | 总 token |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| EM | EM 题内标准差 | F1 | F1 题内标准差 | 文本出处命中率 | cell 出处命中率 | 拒答率 | P50(ms) | P95(ms) | 平均 token | 总 token |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
         f"| {_fmt(summary.get('em', 0))} | {_fmt(summary.get('em_std', 0))} | "
         f"{_fmt(summary.get('f1', 0))} | {_fmt(summary.get('f1_std', 0))} | "
-        f"{_fmt(summary.get('citation_hit', 0))} | {_fmt(summary.get('refusal_rate', 0))} | "
+        f"{_fmt(summary.get('citation_hit', 0))} | {_fmt(summary.get('cell_citation_hit', 0))} | "
+        f"{_fmt(summary.get('refusal_rate', 0))} | "
         f"{summary.get('p50_latency_ms', summary.get('avg_latency_ms', 0))} | "
         f"{summary.get('p95_latency_ms', summary.get('avg_latency_ms', 0))} | "
         f"{summary.get('avg_tokens', 0)} | {summary.get('total_tokens', 0)} |",
+        "",
+        "- **文本出处命中率**：出处还原的文字里能找到答案（宽口径，不要求坐标）。",
+        "- **cell 出处命中率**：必须定位到具体单元格（table_id + row + col 齐全）且该单元格值命中 gold（验收口径）。",
         "",
     ]
     if payload.get("resumed_skipped"):
@@ -94,8 +98,9 @@ def render_qa_section(payload: dict[str, Any], title: str) -> str:
     cache = payload.get("cache") or {}
     if cache:
         lines.append(
-            f"缓存后端命中率：{_fmt(cache.get('hit_rate', 0))}"
-            f"（hits={cache.get('hits', 0)}, misses={cache.get('misses', 0)}）"
+            f"embedding 缓存命中率（本批次，已清零后统计）：{_fmt(cache.get('hit_rate', 0))}"
+            f"（hits={cache.get('hits', 0)}, misses={cache.get('misses', 0)}；"
+            f"断点续跑复用同一批 query 会推高命中，故只看本批次）"
         )
     flags = payload.get("retrieval_flags") or {}
     if flags:
@@ -108,7 +113,7 @@ def render_qa_section(payload: dict[str, Any], title: str) -> str:
             lines.append(
                 f"- Q: {row['question']}\n  gold={row.get('gold')} | pred={row['prediction']!r} "
                 f"| route={row.get('route')} | refused={row.get('refused')} | EM={row.get('em')} "
-                f"| citation_hit={row.get('citation_hit')}"
+                f"| 文本命中={row.get('citation_hit')} | cell 命中={row.get('cell_citation_hit')}"
             )
         lines.append("")
     else:
@@ -148,7 +153,7 @@ def render_hyde_section(off_payload: dict[str, Any], on_payload: dict[str, Any])
 
 def render_demo_section(payload: dict[str, Any]) -> str:
     lines = [
-        "## 6. 多轮对话演示（Checkpointer 真实续接）",
+        "## 8. 多轮对话演示（Checkpointer 真实续接）",
         "",
         f"共 {len(payload.get('demos', []))} 段对话；每段第 2 轮是「那…呢」式追问，"
         "第 3 轮需要复用前两轮的数值做差。",
@@ -174,28 +179,101 @@ def render_demo_section(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def render_refusal_section(payload: dict[str, Any]) -> str:
+def render_refusal_section(payload: dict[str, Any], in_corpus_payload: dict[str, Any] | None = None) -> str:
     summary = payload.get("summary", {})
     protocol = payload.get("protocol", "")
-    if protocol == "removed_from_corpus":
-        protocol_text = "协议：removed_from_corpus（负例文档已真实移出语料池并重建索引）"
-    else:
-        protocol_text = (
-            "协议：scoped_missing_document（提问指向一个不存在的文档，"
-            "检验「无证据时是否拒答」；文档仍在语料池中）"
-        )
-    return "\n".join(
-        [
-            "## 4. 负例拒答",
+    lines = ["## 4. 负例拒答", ""]
+    if protocol == "scoped_missing_document":
+        lines += [
+            "**送分协议**：scoped_missing_document（提问指向一个不存在的文档，检索必然空）。",
             "",
-            f"负例数：{payload.get('n', 0)}。{protocol_text}",
+            f"负例数：{payload.get('n', 0)}。",
             "",
-            "| 正确拒答率 | 硬编率（应当拒答却作答） |",
+            "| 正确拒答率 | 硬编率 |",
             "|---|---|",
             f"| {_fmt(summary.get('refusal_rate', 0))} | {_fmt(summary.get('hallucination_rate', 0))} |",
             "",
+            "> ⚠️ 此协议下 1.0 的拒答率是**预期内的送分**，不代表真实拒答能力——",
+            "> 因为 doc_id 指向不存在的文档，检索一定为空。真实拒答率请看下面的 in_corpus 协议。",
+            "",
         ]
-    )
+    elif protocol == "in_corpus_no_answer":
+        lines += _refusal_table("诚实协议 in_corpus_no_answer", payload, summary)
+        lines += [
+            f"> 语料库大小：{payload.get('corpus_docs', 0)} 个真实文档（pool，均不含答案）；",
+            "> 问题来自 test 文档（不在语料中），开放检索。模型检索到相似表格但无答案时必须拒答。",
+            "",
+        ]
+    else:
+        lines += _refusal_table("协议 removed_from_corpus", payload, summary)
+        lines.append("")
+
+    if in_corpus_payload is not None and protocol != "in_corpus_no_answer":
+        cs = in_corpus_payload.get("summary", {})
+        lines += _refusal_table("诚实协议 in_corpus_no_answer（主数字）", in_corpus_payload, cs)
+        lines += [
+            f"> 语料库大小：{in_corpus_payload.get('corpus_docs', 0)} 个真实文档（pool，均不含答案）。",
+            "> 这才是「文档在库里但没答案」的真实拒答率。",
+            "",
+        ]
+    return "\n".join(lines)
+
+
+def _refusal_table(title: str, payload: dict[str, Any], summary: dict[str, Any]) -> list[str]:
+    return [
+        f"{title}",
+        "",
+        f"负例数：{payload.get('n', 0)}。",
+        "",
+        "| 正确拒答率 | 硬编率（应当拒答却作答） |",
+        "|---|---|",
+        f"| {_fmt(summary.get('refusal_rate', 0))} | {_fmt(summary.get('hallucination_rate', 0))} |",
+        "",
+    ]
+
+
+def render_retrieval_section(payload: dict[str, Any]) -> str:
+    summary = payload.get("summary", {})
+    top_ks = payload.get("top_ks", [])
+    lines = [
+        "## 6. 开放召回（从语料库检索，非给定文档内）",
+        "",
+        f"问题数：{payload.get('n', 0)}；语料库大小：{payload.get('corpus_docs', 0)} 个文档"
+        f"（pool + 本题 test 文档）；代码版本 `{payload.get('code_version', 'n/a')}`。",
+        "",
+        "不传 doc_id，在整个语料库上召回，检验双路召回（BM25 + 向量）+ RRF + CrossEncoder 精排。",
+        "",
+        "| 指标 | " + " | ".join(f"@{k}" for k in top_ks) + " |",
+        "|" + "---|" * (len(top_ks) + 1),
+        "| doc recall | " + " | ".join(_fmt(summary.get(f"doc_recall@{k}", 0)) for k in top_ks) + " |",
+        "| cell recall | " + " | ".join(_fmt(summary.get(f"cell_recall@{k}", 0)) for k in top_ks) + " |",
+        "",
+        "- **doc recall@k**：gold 文档是否出现在 top-k 召回的 doc 集合里。",
+        "- **cell recall@k**：top-k 召回里是否有 gold 文档的行、且该行单元格命中 gold 答案。",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_ablation_section(payload: dict[str, Any]) -> str:
+    variants = payload.get("variants", [])
+    lines = [
+        "## 7. 检索消融（W2 验收项：逐层关掉组件看影响）",
+        "",
+        f"代码版本 `{payload.get('code_version', 'n/a')}`。同一批问题、其余条件不变，只切换检索开关。",
+        "",
+        "| 变体 | rerank | bm25 | vector | EM | F1 | 文本命中 | cell 命中 | P50(ms) | P95(ms) | 总 token |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for v in variants:
+        lines.append(
+            f"| {v.get('variant')} | {v.get('rerank')} | {v.get('bm25')} | {v.get('vector')} | "
+            f"{_fmt(v.get('em', 0))} | {_fmt(v.get('f1', 0))} | {_fmt(v.get('citation_hit', 0))} | "
+            f"{_fmt(v.get('cell_citation_hit', 0))} | {v.get('p50_latency_ms', 0)} | "
+            f"{v.get('p95_latency_ms', 0)} | {v.get('total_tokens', 0)} |"
+        )
+    lines.append("")
+    return "\n".join(lines)
 
 
 def write_report(
@@ -224,6 +302,9 @@ def build_full_report(
     refusal_payload: dict[str, Any] | None,
     hyde_payload: dict[str, Any] | None = None,
     demo_payload: dict[str, Any] | None = None,
+    retrieval_payload: dict[str, Any] | None = None,
+    ablation_payload: dict[str, Any] | None = None,
+    in_corpus_refusal_payload: dict[str, Any] | None = None,
 ) -> Path:
     sections: list[str] = []
     sections.append("> 本报告由 `tr eval run` 生成；所有数字来自 reports/*.json，未手工填写。\n")
@@ -234,9 +315,13 @@ def build_full_report(
     if baseline_payload:
         sections.append(render_qa_section(baseline_payload, "3. 问答层（拍平基线）"))
     if refusal_payload:
-        sections.append(render_refusal_section(refusal_payload))
+        sections.append(render_refusal_section(refusal_payload, in_corpus_refusal_payload))
     if hyde_payload and qa_payload:
         sections.append(render_hyde_section(qa_payload, hyde_payload))
+    if retrieval_payload:
+        sections.append(render_retrieval_section(retrieval_payload))
+    if ablation_payload:
+        sections.append(render_ablation_section(ablation_payload))
     if demo_payload:
         sections.append(render_demo_section(demo_payload))
     if not sections:
@@ -245,9 +330,12 @@ def build_full_report(
         "model": settings.llm.model,
         "embedding": settings.embedding.model,
         "rerank": settings.rerank.model,
+        "code_version": (qa_payload or {}).get("code_version"),
         "repeats": (qa_payload or {}).get("repeats"),
         "workers": (qa_payload or {}).get("workers"),
         "hyde_compare": bool(hyde_payload),
+        "open_retrieval": bool(retrieval_payload),
+        "ablation": bool(ablation_payload),
         "keypool": (qa_payload or {}).get("keypool"),
         "total_qa_tokens": sum(
             (payload or {}).get("summary", {}).get("total_tokens", 0)

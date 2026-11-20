@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import threading
 import time
 from collections import OrderedDict
-from typing import Any, Callable, Protocol
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from tablerag.storage.db import Store
 
@@ -30,21 +32,33 @@ class CacheBackend(Protocol):
 class MetricsMixin:
     hits: int = 0
     misses: int = 0
+    # 并发下 hits/misses 的 += 非原子，必须加锁（只影响统计数字，不影响答案）
+    _metrics_lock: threading.Lock = threading.Lock()
 
     def record(self, hit: bool) -> None:
-        if hit:
-            type(self).hits += 1
-        else:
-            type(self).misses += 1
+        with type(self)._metrics_lock:
+            if hit:
+                type(self).hits += 1
+            else:
+                type(self).misses += 1
 
     @classmethod
     def stats(cls) -> dict[str, float]:
-        total = cls.hits + cls.misses
-        return {
-            "hits": cls.hits,
-            "misses": cls.misses,
-            "hit_rate": (cls.hits / total) if total else 0.0,
-        }
+        with cls._metrics_lock:
+            total = cls.hits + cls.misses
+            return {
+                "hits": cls.hits,
+                "misses": cls.misses,
+                "hit_rate": (cls.hits / total) if total else 0.0,
+            }
+
+    @classmethod
+    def reset(cls) -> None:
+        """清零本进程累计计数。评测每批开始前调用，只报告本批次命中，
+        避免断点续跑复用同一批 query 导致 hit_rate=1.0 的假象。"""
+        with cls._metrics_lock:
+            cls.hits = 0
+            cls.misses = 0
 
 
 class SqliteCache(MetricsMixin):

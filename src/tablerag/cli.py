@@ -109,12 +109,19 @@ def cmd_chat(args) -> None:
 def cmd_eval(args) -> None:
     settings = get_settings()
     from tablerag.eval.report import build_full_report
-    from tablerag.eval.runner import run_parse_eval, run_qa_eval, run_refusal_eval
+    from tablerag.eval.runner import (
+        run_ablation,
+        run_parse_eval,
+        run_qa_eval,
+        run_refusal_eval,
+        run_retrieval_eval,
+    )
 
     splits = load_splits(settings.splits_path)
     contexts = load_contexts(settings.raw_dir, splits=("train", "dev"))
     by_id = {c.ctx_id: c for c in contexts}
     test_ids = [cid for cid in splits["test"] if cid in by_id]
+    pool_ids = [cid for cid in splits["corpus_pool"] if cid in by_id]
 
     if args.action == "parse":
         payload = run_parse_eval(by_id, test_ids, settings, limit=args.limit)
@@ -147,8 +154,26 @@ def cmd_eval(args) -> None:
         payload = run_refusal_eval(
             app, contexts, test_ids, n=args.limit, rebuild_index=args.rebuild,
             workers=args.workers, resume=not args.no_resume,
+            protocol=args.protocol, pool_ids=pool_ids, corpus_size=args.corpus_size,
         )
         print(json.dumps(payload["summary"], ensure_ascii=False, indent=2))
+        print(f"协议：{payload.get('protocol')}；逐次运行记录：{payload.get('run_log')}")
+        return
+    if args.action == "retrieval":
+        payload = run_retrieval_eval(
+            app, by_id, test_ids, pool_ids, limit=args.limit,
+            questions_per_ctx=args.questions, corpus_size=args.corpus_size,
+            resume=not args.no_resume, tag=args.tag,
+        )
+        print(json.dumps(payload["summary"], ensure_ascii=False, indent=2))
+        return
+    if args.action == "ablation":
+        payload = run_ablation(
+            app, by_id, test_ids, limit=args.limit, questions_per_ctx=args.questions,
+            repeats=args.repeats, workers=args.workers, tag=args.tag,
+            resume=not args.no_resume,
+        )
+        print(json.dumps(payload["variants"], ensure_ascii=False, indent=2))
         return
     if args.action == "demo":
         from tablerag.eval.demo import run_multi_turn_demo
@@ -170,20 +195,44 @@ def cmd_eval(args) -> None:
                                        resume=not args.no_resume, tag=args.tag)
         refusal_payload = run_refusal_eval(app, contexts, test_ids, n=args.refusal_limit,
                                            workers=args.workers, resume=not args.no_resume)
+        in_corpus_refusal_payload = None
+        if args.honest_refusal:
+            in_corpus_refusal_payload = run_refusal_eval(
+                app, contexts, test_ids, n=args.refusal_limit, workers=args.workers,
+                resume=not args.no_resume, protocol="in_corpus", pool_ids=pool_ids,
+                corpus_size=args.corpus_size,
+            )
         hyde_payload = None
         if args.hyde:
             hyde_payload = run_qa_eval(app, by_id, test_ids, limit=args.qa_limit,
                                        questions_per_ctx=args.questions, hyde=True,
                                        repeats=args.hyde_repeats, workers=args.workers,
                                        resume=not args.no_resume, tag=args.tag)
+        retrieval_payload = None
+        if args.retrieval:
+            retrieval_payload = run_retrieval_eval(
+                app, by_id, test_ids, pool_ids, limit=args.qa_limit,
+                questions_per_ctx=args.questions, corpus_size=args.corpus_size,
+                resume=not args.no_resume, tag=args.tag,
+            )
+        ablation_payload = None
+        if args.ablation:
+            ablation_payload = run_ablation(
+                app, by_id, test_ids, limit=args.qa_limit,
+                questions_per_ctx=args.questions, repeats=args.repeats,
+                workers=args.workers, tag=args.tag, resume=not args.no_resume,
+            )
         demo_payload = None
         if not args.no_demo:
             from tablerag.eval.demo import run_multi_turn_demo
 
             demo_payload = run_multi_turn_demo(app, by_id, test_ids, n=args.demo_limit)
-        path = build_full_report(settings, parse_payload, qa_payload, baseline_payload,
-                                 refusal_payload, hyde_payload=hyde_payload,
-                                 demo_payload=demo_payload)
+        path = build_full_report(
+            settings, parse_payload, qa_payload, baseline_payload, refusal_payload,
+            hyde_payload=hyde_payload, demo_payload=demo_payload,
+            retrieval_payload=retrieval_payload, ablation_payload=ablation_payload,
+            in_corpus_refusal_payload=in_corpus_refusal_payload,
+        )
         print(f"报告已生成：{path}")
         print(f"token 合计：QA {qa_payload['summary'].get('total_tokens', 0)} / "
               f"拍平 {baseline_payload['summary'].get('total_tokens', 0)} / "
@@ -247,7 +296,8 @@ def build_parser() -> argparse.ArgumentParser:
     chat.set_defaults(func=cmd_chat)
 
     evaluate = sub.add_parser("eval", help="评测")
-    evaluate.add_argument("action", choices=["parse", "qa", "refusal", "demo", "run"])
+    evaluate.add_argument("action", choices=["parse", "qa", "refusal", "retrieval",
+                                             "ablation", "demo", "run"])
     evaluate.add_argument("--limit", type=int, default=20)
     evaluate.add_argument("--questions", type=int, default=1)
     evaluate.add_argument("--hyde", action="store_true",
@@ -270,6 +320,16 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--refusal-limit", type=int, default=50, dest="refusal_limit")
     evaluate.add_argument("--demo-limit", type=int, default=3, dest="demo_limit")
     evaluate.add_argument("--no-demo", action="store_true", dest="no_demo")
+    evaluate.add_argument("--protocol", default="scoped", choices=["scoped", "in_corpus"],
+                          help="refusal: 负例协议（scoped 送分 / in_corpus 诚实）")
+    evaluate.add_argument("--corpus-size", type=int, default=200, dest="corpus_size",
+                          help="in_corpus 负例 / 开放召回的语料库文档数")
+    evaluate.add_argument("--retrieval", action="store_true",
+                          help="run: 额外跑开放召回评测（doc/cell recall@k）")
+    evaluate.add_argument("--ablation", action="store_true",
+                          help="run: 额外跑检索消融对照（W2 验收项）")
+    evaluate.add_argument("--honest-refusal", action="store_true", dest="honest_refusal",
+                          help="run: 额外跑 in_corpus 诚实负例（真实拒答率）")
     evaluate.set_defaults(func=cmd_eval)
 
     stats = sub.add_parser("stats", help="索引与缓存统计")

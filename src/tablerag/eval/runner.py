@@ -16,9 +16,10 @@ import re
 import statistics
 import threading
 import time
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from pypdf import PdfReader
 
@@ -33,6 +34,7 @@ from tablerag.eval.parse_metrics import (
 from tablerag.eval.qa_metrics import (
     aggregate_qa,
     aggregate_refusal,
+    cell_citation_hit,
     citation_hit,
     qa_scores,
 )
@@ -55,6 +57,30 @@ def _slug(text: str) -> str:
 def _signature(payload: dict[str, Any]) -> str:
     raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
+
+
+# 参与断点签名的源文件：改 prompt / 评测口径 / 检索逻辑后必须让签名变化，
+# 否则重跑会静默复用旧结果（test 集污染的根因）。
+_CODE_FILES = [
+    "agent/graph.py", "agent/prompts.py", "agent/tools.py", "agent/state.py",
+    "eval/runner.py", "eval/qa_metrics.py", "eval/negatives.py", "eval/report.py",
+    "retrieval/pipeline.py", "retrieval/bm25.py", "retrieval/vector.py", "retrieval/rrf.py",
+    "domain/models.py", "domain/text.py", "storage/cache.py", "storage/db.py",
+    "ingest/dataset.py", "ingest/parser.py", "ingest/flatten.py", "ingest/splits.py",
+    "llm/client.py", "llm/embeddings.py", "llm/rerank.py",
+]
+
+
+def _code_version() -> str:
+    """关键源文件内容的哈希；改 prompt 或代码即变化，写进断点签名防污染复用。"""
+    root = Path(__file__).resolve().parent.parent  # src/tablerag
+    digest = hashlib.sha1()
+    for rel in _CODE_FILES:
+        path = root / rel
+        if path.exists():
+            digest.update(rel.encode("utf-8"))
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:10]
 
 
 def _run_log_path(settings: Settings, kind: str, signature: str) -> Path:
@@ -190,6 +216,7 @@ def run_qa_eval(
 
     flags = RetrievalFlags(bm25=use_bm25, vector=use_vector, rerank=use_rerank)
     app.retriever.default_flags = flags
+    code_version = _code_version()
     signature = _signature(
         {
             "model": app.settings.llm.model,
@@ -199,6 +226,7 @@ def run_qa_eval(
             "flags": flags.__dict__,
             "qpc": questions_per_ctx,
             "tag": tag,
+            "code": code_version,
         }
     )
     run_path = _run_log_path(app.settings, f"qa_{mode}", signature)
@@ -255,6 +283,7 @@ def run_qa_eval(
             "em": scored["em"],
             "f1": scored["f1"],
             "citation_hit": citation_hit(answer.citations, task["gold"], app.store),
+            "cell_citation_hit": cell_citation_hit(answer.citations, task["gold"], app.store),
             "latency_ms": answer.latency_ms,
             "total_tokens": answer.token_usage.get("total_tokens", 0),
             "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -262,6 +291,9 @@ def run_qa_eval(
         _append(run_path, record)
         return record
 
+    # 只报告本批次的 embedding 缓存命中：清零后再跑，避免断点续跑复用同一批
+    # query 导致 hit_rate=1.0 的假象（不是系统缓存效果）。
+    app.cache.reset()
     new_records: list[dict[str, Any]] = []
     started = time.time()
     if workers <= 1:
@@ -285,7 +317,8 @@ def run_qa_eval(
                             "signature": signature, "run_key": task["run_key"], "rep": task["rep"],
                             "prediction": "", "refused": False, "route": "error",
                             "hyde_rounds": 0, "used_compute": False, "em": 0.0, "f1": 0.0,
-                            "citation_hit": False, "latency_ms": 0, "total_tokens": 0,
+                            "citation_hit": False, "cell_citation_hit": False,
+                            "latency_ms": 0, "total_tokens": 0,
                             "error": str(exc),
                         }
                     )
@@ -306,6 +339,7 @@ def run_qa_eval(
         "mode": mode,
         "model": app.settings.llm.model,
         "hyde": hyde,
+        "code_version": code_version,
         "resumed_skipped": skipped,
         "run_log": str(run_path),
         "elapsed_s": round(time.time() - started, 1),
@@ -354,6 +388,9 @@ def _aggregate_question_rows(
                 "citation_hit": round(
                     statistics.fmean([float(r.get("citation_hit") or 0) for r in recs]), 4
                 ) if recs else 0.0,
+                "cell_citation_hit": round(
+                    statistics.fmean([float(r.get("cell_citation_hit") or 0) for r in recs]), 4
+                ) if recs else 0.0,
                 "latency_ms": int(statistics.fmean([r.get("latency_ms", 0) for r in recs])),
                 "total_tokens": int(statistics.fmean([r.get("total_tokens", 0) for r in recs])),
                 "runs": [r.get("prediction") for r in recs] if len(recs) > 1 else [],
@@ -372,36 +409,61 @@ def run_refusal_eval(
     hyde: bool | None = None,
     workers: int = 1,
     resume: bool = True,
+    protocol: str = "scoped",
+    pool_ids: Sequence[str] | None = None,
+    corpus_size: int = 200,
 ) -> dict[str, Any]:
-    """负例协议（两种，报告里必须写清用的哪种）：
+    """负例协议（报告里必须写清用的哪种，数字不能混为一谈）：
 
-    - scoped（默认）：按"该文档不存在"提问（doc_id 指向空文档），检索必然无证据，
-      检验的是"无证据时是否拒答"。成本低，不破坏现有索引。
-    - rebuild：重建索引并把这批文档真实移出语料池，检验开放检索下是否误从别的文档硬编。
-      成本高（需要重新向量化整个语料池）。
+    - scoped_missing_document（默认，送分协议）：doc_id 指向不存在的文档，检索必然空，
+      100% 拒答是预期的，**不代表真实拒答率**。成本低，不破坏现有索引。
+    - in_corpus_no_answer（诚实协议）：问题来自 doc A，但只把 corpus_pool 里的文档
+      （与 A 不相交）建索引并开放检索——文档都在库里，但答案确实不在库里。检验的是
+      "检索到了相似文档但没答案时是否拒答"，这才是真实拒答能力。
+    - removed_from_corpus：重建索引把负例文档真实移出语料池（旧协议，保留兼容）。
     """
-    from tablerag.eval.negatives import build_negatives
+    from tablerag.eval.negatives import build_in_corpus_negatives
 
-    negatives = build_negatives(contexts, ctx_ids, n=n)
-    removed = {item["ctx_id"] for item in negatives}
-    if rebuild_index:
-        app.retriever.reset()
-        keep = [ctx for ctx in contexts if ctx.ctx_id not in removed]
-        index_contexts(app, keep)
-        protocol = "removed_from_corpus"
+    by_id = {ctx.ctx_id: ctx for ctx in contexts}
+    if protocol == "in_corpus":
+        if not pool_ids:
+            raise ValueError("in_corpus 协议需要 pool_ids（语料池文档）")
+        negatives = build_in_corpus_negatives(contexts, ctx_ids, pool_ids, n=n)
+        pool_list = [cid for cid in pool_ids if cid in by_id][:corpus_size]
+        missing_pool = [cid for cid in pool_list if not app.store.has_doc(f"tatqa:{cid}")]
+        if missing_pool:
+            index_contexts(app, [by_id[cid] for cid in missing_pool])
+        app.retriever.ensure_loaded()
+        protocol_name = "in_corpus_no_answer"
+        removed: set[str] = set()
+        corpus_docs = pool_list
     else:
-        protocol = "scoped_missing_document"
+        negatives = build_negatives(contexts, ctx_ids, n=n)
+        removed = {item["ctx_id"] for item in negatives}
+        if rebuild_index:
+            app.retriever.reset()
+            keep = [ctx for ctx in contexts if ctx.ctx_id not in removed]
+            index_contexts(app, keep)
+            protocol_name = "removed_from_corpus"
+        else:
+            protocol_name = "scoped_missing_document"
+        corpus_docs = []
 
+    code_version = _code_version()
     signature = _signature(
-        {"model": app.settings.llm.model, "kind": "refusal", "protocol": protocol,
-         "hyde": bool(hyde)}
+        {"model": app.settings.llm.model, "kind": "refusal", "protocol": protocol_name,
+         "hyde": bool(hyde), "code": code_version}
     )
     run_path = _run_log_path(app.settings, "refusal", signature)
     done = _load_done(run_path, signature) if resume else {}
     agent = app.eval_agent
+    app.cache.reset()
 
     def execute(item: dict[str, Any]) -> dict[str, Any]:
-        doc_id = None if rebuild_index else f"tatqa:{item['ctx_id']}:removed"
+        if protocol_name == "scoped_missing_document":
+            doc_id = f"tatqa:{item['ctx_id']}:removed"
+        else:
+            doc_id = None  # in_corpus / removed_from_corpus：开放检索
         answer = agent.ask(item["question"], doc_id=doc_id, hyde=hyde)
         record = {
             "signature": signature,
@@ -438,15 +500,200 @@ def run_refusal_eval(
 
     payload = {
         "n": len(records),
-        "protocol": protocol,
+        "protocol": protocol_name,
+        "code_version": code_version,
         "model": app.settings.llm.model,
         "summary": aggregate_refusal(records),
         "removed_docs": sorted(removed),
+        "corpus_docs": len(corpus_docs),
         "run_log": str(run_path),
         "rows": records,
     }
     _dump(app.settings, "refusal_eval", payload)
     return payload
+
+
+# ---------------- 开放召回（从语料库检索，不是给定文档内） ----------------
+def _cell_in_topk(
+    candidates: list, gold_doc_id: str, golds: list[str], store: Any
+) -> bool:
+    """top-k 召回里是否有一个单元来自 gold 文档、且该行有单元格命中 gold 答案。"""
+    from tablerag.domain.text import normalize_cell, numbers_match, parse_number
+
+    gold_norm = [normalize_cell(g).lower() for g in golds if normalize_cell(g)]
+    gold_numbers = [parse_number(g) for g in gold_norm]
+    for scored in candidates:
+        unit = scored.unit
+        if unit.doc_id != gold_doc_id or not unit.table_id or unit.row is None:
+            continue
+        table = store.get_table(unit.table_id)
+        if table is None:
+            continue
+        for col in range(table.n_cols):
+            cell = table.cell(unit.row, col)
+            if not cell.strip():
+                continue
+            ncell = normalize_cell(cell).lower()
+            for g in gold_norm:
+                if g in ncell or ncell in g:
+                    return True
+            cn = parse_number(cell)
+            if cn is not None:
+                for gn in gold_numbers:
+                    if gn is not None and numbers_match(cn, gn):
+                        return True
+    return False
+
+
+def run_retrieval_eval(
+    app: AppContext,
+    contexts_by_id: dict[str, Context],
+    ctx_ids: Sequence[str],
+    pool_ids: Sequence[str],
+    limit: int | None = None,
+    questions_per_ctx: int = 1,
+    top_ks: tuple[int, ...] = (5, 20),
+    corpus_size: int = 500,
+    resume: bool = True,
+    tag: str = "",
+) -> dict[str, Any]:
+    """开放召回评测：不传 doc_id，在语料库（pool + 本题 test 文档）上召回，
+    算 doc recall@k 和 cell recall@k。这才真正检验双路召回 + 精排的技能栏。
+
+    注意：索引语料库要向量化大量文档，成本高；corpus_size 控制规模，报告里如实披露。
+    """
+    code_version = _code_version()
+    signature = _signature(
+        {"model": app.settings.llm.model, "kind": "retrieval",
+         "code": code_version, "qpc": questions_per_ctx,
+         "top_ks": list(top_ks), "corpus_size": corpus_size, "tag": tag}
+    )
+    run_path = _run_log_path(app.settings, "retrieval", signature)
+    done = _load_done(run_path, signature) if resume else {}
+
+    test_in = [cid for cid in ctx_ids if cid in contexts_by_id]
+    if limit:
+        test_in = test_in[:limit]
+    pool_in = [cid for cid in pool_ids if cid in contexts_by_id][:corpus_size]
+    all_corpus = test_in + pool_in
+    missing = [cid for cid in all_corpus if not app.store.has_doc(f"tatqa:{cid}")]
+    if missing:
+        index_contexts(app, [contexts_by_id[cid] for cid in missing])
+    app.retriever.ensure_loaded()
+    app.cache.reset()
+
+    max_k = max(top_ks)
+    records: list[dict[str, Any]] = []
+    for ctx_id in test_in:
+        ctx = contexts_by_id[ctx_id]
+        gold_doc = f"tatqa:{ctx_id}"
+        for question in ctx.questions[:questions_per_ctx]:
+            run_key = question.qid
+            if run_key in done:
+                records.append(done[run_key])
+                continue
+            candidates, trace = app.retriever.search(
+                question.question, doc_id=None, top_k=max_k
+            )
+            doc_ids = [c.unit.doc_id for c in candidates]
+            doc_hit = {f"doc@{k}": gold_doc in doc_ids[:k] for k in top_ks}
+            cell_hit = {
+                f"cell@{k}": _cell_in_topk(candidates[:k], gold_doc, question.answers, app.store)
+                for k in top_ks
+            }
+            record = {
+                "signature": signature,
+                "run_key": run_key,
+                "qid": run_key,
+                "ctx_id": ctx_id,
+                "question": question.question,
+                "gold": question.answers,
+                "answer_from": question.answer_from,
+                **doc_hit,
+                **cell_hit,
+                "n_retrieved": len(candidates),
+                "bm25_hits": trace.bm25_hits,
+                "vector_hits": trace.vector_hits,
+                "rerank_used": trace.rerank_used,
+            }
+            _append(run_path, record)
+            records.append(record)
+
+    n = len(records) or 1
+    summary: dict[str, Any] = {"n": len(records), "corpus_docs": len(all_corpus)}
+    for k in top_ks:
+        summary[f"doc_recall@{k}"] = round(
+            sum(1 for r in records if r.get(f"doc@{k}")) / n, 4
+        )
+        summary[f"cell_recall@{k}"] = round(
+            sum(1 for r in records if r.get(f"cell@{k}")) / n, 4
+        )
+    payload = {
+        "n": len(records),
+        "corpus_docs": len(all_corpus),
+        "code_version": code_version,
+        "top_ks": list(top_ks),
+        "summary": summary,
+        "run_log": str(run_path),
+        "rows": records,
+    }
+    _dump(app.settings, "retrieval_eval", payload)
+    return payload
+
+
+# ---------------- 消融（W2 验收项） ----------------
+ABLATION_VARIANTS = [
+    ("full", True, True, True),
+    ("no_rerank", False, True, True),
+    ("no_bm25", True, False, True),
+    ("no_vector", True, True, False),
+]
+
+
+def run_ablation(
+    app: AppContext,
+    contexts_by_id: dict[str, Context],
+    ctx_ids: Sequence[str],
+    limit: int = 15,
+    questions_per_ctx: int = 1,
+    repeats: int = 1,
+    workers: int = 1,
+    tag: str = "ablation",
+    resume: bool = True,
+) -> dict[str, Any]:
+    """在同一批问题上跑检索开关变体，产出 EM/F1/cell 命中/延迟对照表（W2 验收项）。"""
+    results: list[dict[str, Any]] = []
+    for name, rerank, bm25, vector in ABLATION_VARIANTS:
+        payload = run_qa_eval(
+            app, contexts_by_id, ctx_ids, limit=limit,
+            questions_per_ctx=questions_per_ctx, repeats=repeats, workers=workers,
+            use_rerank=rerank, use_bm25=bm25, use_vector=vector,
+            resume=resume, tag=f"{tag}_{name}",
+        )
+        s = payload.get("summary", {})
+        results.append(
+            {
+                "variant": name,
+                "rerank": rerank,
+                "bm25": bm25,
+                "vector": vector,
+                "n": payload.get("n", 0),
+                "em": s.get("em", 0.0),
+                "f1": s.get("f1", 0.0),
+                "citation_hit": s.get("citation_hit", 0.0),
+                "cell_citation_hit": s.get("cell_citation_hit", 0.0),
+                "p50_latency_ms": s.get("p50_latency_ms", 0),
+                "p95_latency_ms": s.get("p95_latency_ms", 0),
+                "total_tokens": s.get("total_tokens", 0),
+            }
+        )
+    payload_out = {
+        "tag": tag,
+        "code_version": _code_version(),
+        "variants": results,
+    }
+    _dump(app.settings, "ablation_eval", payload_out)
+    return payload_out
 
 
 # ---------------- 工具 ----------------

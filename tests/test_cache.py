@@ -1,3 +1,5 @@
+import threading
+
 from tablerag.config import LLMSettings, Settings
 from tablerag.storage.cache import MemoryCache, SqliteCache, build_cache
 from tablerag.storage.db import Store
@@ -43,3 +45,31 @@ def test_settings_reuse_llm_key_for_embedding():
     settings = settings.api_keys_resolved()
     assert settings.embedding.api_key == settings.llm.api_key
     assert settings.rerank.api_key == settings.llm.api_key
+
+
+def test_cache_reset_clears_stats(tmp_path):
+    store = Store(tmp_path / "c.db")
+    cache = SqliteCache(store)
+    cache.set("k", "v")
+    cache.get("k")  # 命中
+    assert cache.stats()["hits"] >= 1
+    cache.reset()
+    assert cache.stats() == {"hits": 0, "misses": 0, "hit_rate": 0.0}
+
+
+def test_cache_record_is_thread_safe(tmp_path):
+    """并发下 hits 累加不能丢计数（之前 += 非原子）。"""
+    store = Store(tmp_path / "c.db")
+    cache = SqliteCache(store)
+    cache.reset()
+
+    def worker():
+        for _ in range(1000):
+            cache.record(True)
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert cache.stats()["hits"] == 8000

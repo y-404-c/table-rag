@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from tablerag.domain.models import Citation
-from tablerag.domain.text import best_scores, normalize_cell, parse_number, scale_factor
+from tablerag.domain.text import (
+    best_scores,
+    normalize_cell,
+    numbers_match,
+    parse_number,
+    scale_factor,
+)
 from tablerag.storage.db import Store
 
 
@@ -36,10 +43,12 @@ def citation_hit(
     golds: Iterable[str],
     store: Store | None = None,
 ) -> bool:
-    """出处命中定义（自己定，报告里写清）：
+    """文本级出处命中（宽口径，报告里写清）：
 
-    任一条出处定位到的文字包含标准答案原文（大小写/标点不敏感），
-    或出处单元格数值与标准答案数值在 0.1% 相对误差内，即视为命中。
+    任一条出处还原出的文字包含标准答案原文（大小写/标点不敏感），
+    或出处文字里的数值与标准答案数值在 0.1% 相对误差内，即视为命中。
+    注意：这只证明"出处文字里能找到答案"，不证明"定位到了单元格"——
+    单元格级命中请看 cell_citation_hit。
     """
     gold_list = [normalize_cell(g) for g in golds if normalize_cell(g)]
     if not gold_list or not citations:
@@ -54,9 +63,42 @@ def citation_hit(
         resolved_number = parse_number(resolved)
         if resolved_number is not None:
             for gold_number in gold_numbers:
-                if gold_number is not None and abs(resolved_number - gold_number) <= 0.001 * max(
-                    abs(gold_number), 1.0
-                ):
+                if gold_number is not None and numbers_match(resolved_number, gold_number):
+                    return True
+    return False
+
+
+def cell_citation_hit(
+    citations: list[Citation],
+    golds: Iterable[str],
+    store: Store | None = None,
+) -> bool:
+    """严格 cell 级命中（验收口径：数值题答案必须能溯源到具体单元格）：
+
+    必须同时满足：
+    1. 出处有 table_id 且 row / col 都不为 None（真正定位到单元格，不是行/段）；
+    2. 该单元格的值（从 store 实取）命中某个 gold：文本包含或数值 0.1% 误差内。
+    行级出处（col=None）、段落出处（table_id=None）一律不计。
+    """
+    gold_list = [normalize_cell(g) for g in golds if normalize_cell(g)]
+    if not gold_list or not citations or store is None:
+        return False
+    gold_numbers = [parse_number(g) for g in gold_list]
+    for citation in citations:
+        if not (citation.table_id and citation.row is not None and citation.col is not None):
+            continue
+        table = store.get_table(citation.table_id)
+        if table is None:
+            continue
+        cell_text = table.cell(citation.row, citation.col)
+        normalized = normalize_cell(cell_text).lower()
+        for gold in gold_list:
+            if gold.lower() in normalized or normalized in gold.lower():
+                return True
+        cell_number = parse_number(cell_text)
+        if cell_number is not None:
+            for gold_number in gold_numbers:
+                if gold_number is not None and numbers_match(cell_number, gold_number):
                     return True
     return False
 
@@ -82,9 +124,9 @@ def aggregate_qa(
     n = len(rows)
     if n == 0:
         return {"n": 0, "em": 0.0, "f1": 0.0, "em_std": 0.0, "f1_std": 0.0,
-                "citation_hit": 0.0, "refusal_rate": 0.0, "avg_latency_ms": 0,
-                "p50_latency_ms": 0, "p95_latency_ms": 0, "avg_tokens": 0,
-                "total_tokens": 0}
+                "citation_hit": 0.0, "cell_citation_hit": 0.0, "refusal_rate": 0.0,
+                "avg_latency_ms": 0, "p50_latency_ms": 0, "p95_latency_ms": 0,
+                "avg_tokens": 0, "total_tokens": 0}
     lat = [float(v) for v in (latencies if latencies is not None else
                               [r.get("latency_ms", 0) for r in rows])]
     tok = [float(v) for v in (tokens if tokens is not None else
@@ -97,6 +139,9 @@ def aggregate_qa(
         "f1_std": round(sum(r.get("f1_std", 0.0) for r in rows) / n, 4),
         "citation_hit": round(
             sum(float(r.get("citation_hit") or 0) for r in answered) / max(1, len(answered)), 4
+        ),
+        "cell_citation_hit": round(
+            sum(float(r.get("cell_citation_hit") or 0) for r in answered) / max(1, len(answered)), 4
         ),
         "refusal_rate": round(sum(1 for r in rows if r.get("refused")) / n, 4),
         "avg_latency_ms": int(sum(lat) / len(lat)) if lat else 0,
