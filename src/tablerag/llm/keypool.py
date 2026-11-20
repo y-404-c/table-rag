@@ -117,6 +117,12 @@ def classify_error(exc: BaseException) -> str:
         return "retry"
     if isinstance(exc, (TimeoutError, ConnectionError)):
         return "retry"
-    if "timeout" in text or "connection" in text:
+    if any(
+        token in text
+        for token in (
+            "timeout", "timed out", "connection", "connect", "ssl", "eof",
+            "network", "reset", "broken pipe", "temporarily unavailable",
+        )
+    ):
         return "retry"
     return "fatal"

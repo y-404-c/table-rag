@@ -53,6 +53,7 @@ class ChatClient:
     _client: Any = field(default=None, repr=False)
     _clients: dict[str, Any] = field(default_factory=dict, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    _local: threading.local = field(default_factory=threading.local, repr=False)
 
     def __post_init__(self) -> None:
         keys = self.settings.resolved_keys()
@@ -84,12 +85,37 @@ class ChatClient:
             return self._clients[api_key]
 
     def _record_usage(self, usage: Any) -> None:
+        prompt = getattr(usage, "prompt_tokens", 0) if usage is not None else 0
+        completion = getattr(usage, "completion_tokens", 0) if usage is not None else 0
         with self._lock:
             self.calls += 1
-            if usage is None:
-                return
-            self.prompt_tokens += getattr(usage, "prompt_tokens", 0) or 0
-            self.completion_tokens += getattr(usage, "completion_tokens", 0) or 0
+            self.prompt_tokens += prompt or 0
+            self.completion_tokens += completion or 0
+        # 并发评测时全局计数会被别的线程写脏，单次问答的用量走线程内计数
+        local = self._local
+        local.prompt = getattr(local, "prompt", 0) + (prompt or 0)
+        local.completion = getattr(local, "completion", 0) + (completion or 0)
+        local.calls = getattr(local, "calls", 0) + 1
+
+    def begin_scope(self) -> None:
+        local = self._local
+        local.mark = (
+            getattr(local, "prompt", 0),
+            getattr(local, "completion", 0),
+            getattr(local, "calls", 0),
+        )
+
+    def scope_usage(self) -> dict[str, int]:
+        local = self._local
+        mark = getattr(local, "mark", (0, 0, 0))
+        prompt = getattr(local, "prompt", 0) - mark[0]
+        completion = getattr(local, "completion", 0) - mark[1]
+        return {
+            "calls": getattr(local, "calls", 0) - mark[2],
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "total_tokens": prompt + completion,
+        }
 
     @property
     def usage(self) -> dict[str, int]:
@@ -119,6 +145,8 @@ class ChatClient:
             kwargs["tools"] = tools
             if tool_choice:
                 kwargs["tool_choice"] = tool_choice
+        # 显式关闭思考链：qwen4-max 默认开，会吃 completion token 并偶发空 JSON
+        kwargs["extra_body"] = {"enable_thinking": self.settings.enable_thinking}
 
         assert self.keypool is not None
         retry_budget = max(1, self.settings.max_retries + 1)

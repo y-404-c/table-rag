@@ -21,6 +21,8 @@ class LLMSettings(BaseModel):
     max_tokens: int = 1200
     timeout_s: float = 90.0
     max_retries: int = 2
+    # qwen4-max 默认开思考链，会吃 completion token 且偶发空输出；默认关掉
+    enable_thinking: bool = False
 
     def resolved_keys(self) -> list[str]:
         from tablerag.llm.keypool import parse_keys

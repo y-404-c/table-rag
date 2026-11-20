@@ -74,9 +74,10 @@ class Embedder:
                     reason=f"embedding: {exc}"[:120], mark_dead=True
                 ):
                     continue
-                if kind == "retry" and retries < 2:
+                if kind == "retry" and retries < 4:
                     retries += 1
-                    time.sleep(min(2 ** retries, 10))
+                    # 本机走代理时偶发 SSL EOF，退避 2/4/8/16s 后重试
+                    time.sleep(min(2 ** (retries + 1), 16))
                     continue
                 raise EmbeddingError(str(exc)) from exc
 

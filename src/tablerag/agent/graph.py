@@ -351,7 +351,7 @@ class RAGAgent:
     ) -> Answer:
         tracer = Tracer(self.settings.trace_dir, sink=self.settings.agent.trace_sink)
         started = time.time()
-        before = dict(self.client.usage)
+        self.client.begin_scope()
         payload: dict[str, Any] = {
             "question": question,
             "doc_id": doc_id,
@@ -372,8 +372,7 @@ class RAGAgent:
         config = {"configurable": {"thread_id": thread_id or tracer.trace_id}}
         with tracer.span("graph"):
             final = self.graph.invoke(payload, config=config)
-        after = self.client.usage
-        usage = {key: after[key] - before.get(key, 0) for key in after}
+        usage = self.client.scope_usage()
         latency_ms = int((time.time() - started) * 1000)
         tracer.event("answer", route=final.get("route"), refused=final.get("refused"))
         tracer.finish(question=question, usage=usage, latency_ms=latency_ms,

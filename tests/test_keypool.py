@@ -48,3 +48,28 @@ def test_classify_error_maps_auth_quota_and_transient():
     assert classify_error(FakeHTTPError(500)) == "retry"
     assert classify_error(TimeoutError("timeout")) == "retry"
     assert classify_error(ValueError("bad json")) == "fatal"
+
+
+def test_usage_scope_is_thread_local():
+    """并发评测时每个线程的 token 计量必须互不污染。"""
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    from tablerag.llm.client import ChatClient
+
+    client = ChatClient(LLMSettings(api_key="offline-key"))
+
+    def worker(prompt_tokens: int):
+        client.begin_scope()
+        client._record_usage(SimpleNamespace(prompt_tokens=prompt_tokens, completion_tokens=1))
+        client._record_usage(SimpleNamespace(prompt_tokens=prompt_tokens, completion_tokens=1))
+        return client.scope_usage()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(worker, 10).result()
+        second = pool.submit(worker, 100).result()
+
+    assert first["prompt_tokens"] == 20
+    assert second["prompt_tokens"] == 200
+    assert first["total_tokens"] == 22
+    assert client.usage["prompt_tokens"] == 220

@@ -32,6 +32,12 @@ class FakeClient:
     def text(self, messages, **kwargs):
         return ""
 
+    def begin_scope(self):
+        pass
+
+    def scope_usage(self):
+        return dict(self.usage)
+
 
 class FakeRetriever:
     def __init__(self, evidence: list[ScoredUnit] | None = None):
